@@ -5,6 +5,7 @@ import Pagination from '../components/Pagination';
 import { Bell, Search, Filter, AlertCircle, CheckCircle2, MessageCircle } from 'lucide-react';
 
 const AdminPaymentTracking = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('ทั้งหมด');
   const [currentPage, setCurrentPage] = useState(1);
@@ -48,9 +49,9 @@ const AdminPaymentTracking = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <main className="flex-1 p-8">
-        <Header />
+        <Header onMenuClick={() => setIsSidebarOpen(true)} />
 
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <h2 className="text-2xl font-bold text-slate-800">ติดตามการชำระค่าส่วนกลาง</h2>

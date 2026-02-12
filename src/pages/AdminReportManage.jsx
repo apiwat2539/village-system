@@ -6,6 +6,7 @@ import Pagination from '../components/Pagination';
 import { MessageSquare, CheckCircle2 } from 'lucide-react';
 
 const AdminReportManage = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState('ทั้งหมด');
@@ -38,9 +39,9 @@ const AdminReportManage = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <main className="flex-1 p-8">
-        <Header />
+        <Header onMenuClick={() => setIsSidebarOpen(true)} />
         
         {/* ส่วนหัวและตัวกรอง (เหมือนเดิม) */}
         <div className="flex justify-between items-center mb-6">

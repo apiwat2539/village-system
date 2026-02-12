@@ -5,6 +5,7 @@ import PaymentModal from '../components/PaymentModal';
 import { CreditCard, History, AlertCircle, CheckCircle2, Gift } from 'lucide-react';
 
 const Payment = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [paymentType, setPaymentType] = useState('monthly'); // 'monthly' หรือ 'yearly'
 
@@ -16,9 +17,9 @@ const Payment = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-kanit">
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <main className="flex-1 p-4 md:p-8">
-        <Header />
+        <Header onMenuClick={() => setIsSidebarOpen(true)} />
 
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">จัดการค่าส่วนกลาง</h2>

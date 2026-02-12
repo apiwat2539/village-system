@@ -14,6 +14,7 @@ const Profile = () => {
     houseNo: '99/123'
   });
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -27,12 +28,12 @@ const Profile = () => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* 1. ใส่ Sidebar ไว้ด้านซ้ายสุด */}
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       {/* 2. พื้นที่เนื้อหาหลักทางขวา */}
       <main className="flex-1 p-8">
         {/* 3. ใส่ Header ไว้ด้านบน */}
-        <Header />
+        <Header onMenuClick={() => setIsSidebarOpen(true)} />
 
         {/* 4. ส่วนของ Form ข้อมูลส่วนตัว (เอาโค้ดเดิมมาวางตรงนี้) */}
         <div className="min-h-screen bg-gray-50 p-4 md:p-8">

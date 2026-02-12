@@ -9,6 +9,7 @@ const AdminUserManage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [users, setUsers] = useState([
     { id: 1, name: "สมชาย รักดี", email: "somchai@email.com", houseNo: "99/1", phone: "081-234-5678", status: "pending", role: "user" },
@@ -60,9 +61,9 @@ const AdminUserManage = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <main className="flex-1 p-8">
-        <Header />
+        <Header onMenuClick={() => setIsSidebarOpen(true)} />
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <h2 className="text-2xl font-bold text-slate-800">จัดการสมาชิกหมู่บ้าน</h2>

@@ -6,6 +6,7 @@ import { Clock, CheckCircle2, AlertCircle, ChevronRight, ChevronLeft } from 'luc
 import Pagination from '../components/Pagination';
 
 const ReportHistory = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -37,9 +38,9 @@ const ReportHistory = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <main className="flex-1 p-4 md:p-8">
-        <Header />
+        <Header onMenuClick={() => setIsSidebarOpen(true)} />
         
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-6">

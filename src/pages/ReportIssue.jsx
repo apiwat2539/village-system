@@ -5,6 +5,7 @@ import { Wrench, Upload, X, Send, AlertCircle, Clock, Image as ImageIcon } from 
 import { useNavigate } from 'react-router-dom';
 
 const ReportIssue = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
   
   // 1. เปลี่ยน State สำหรับเก็บข้อมูลไฟล์
@@ -76,9 +77,9 @@ const ReportIssue = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <main className="flex-1 p-4 md:p-8">
-        <Header />
+        <Header onMenuClick={() => setIsSidebarOpen(true)} />
 
         <div className="max-w-3xl mx-auto mb-4 flex justify-end">
           <button 

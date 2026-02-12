@@ -9,6 +9,7 @@ import {
 import Pagination from '../components/Pagination';
 
 const AdminAccountManage = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('income'); // 'income' หรือ 'expense'
   const [isModalOpen, setIsModalOpen] = useState(false);
   
@@ -68,9 +69,9 @@ const AdminAccountManage = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <main className="flex-1 p-8">
-        <Header />
+        <Header onMenuClick={() => setIsSidebarOpen(true)} />
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <h2 className="text-2xl font-bold text-slate-800">บัญชีหมู่บ้าน</h2>
