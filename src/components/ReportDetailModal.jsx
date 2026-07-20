@@ -78,40 +78,57 @@ const ReportDetailModal = ({ isOpen, onClose, data }) => {
             </div>
           </div>
 
-          {/* ส่วนที่ 2: การตอบกลับจาก Admin */}
+          {/* ส่วนที่ 2: ประวัติการตอบกลับจาก Admin (ใหม่สุดอยู่บนสุด) */}
           <div className="relative pl-8 border-l-2 border-slate-200">
             <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-4 border-white shadow-sm ${
               data.status === 'เสร็จสิ้น' ? 'bg-green-500' : 'bg-amber-500'
             }`}></div>
             <div className="mb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">สถานะการดำเนินการ</div>
-            
+
             <div className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold mb-3 ${
               data.status === 'เสร็จสิ้น' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
             }`}>
               {data.status}
             </div>
 
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-inner">
-              <div className="flex items-center text-slate-800 font-bold text-sm mb-2">
-                <MessageCircle size={16} className="mr-2 text-indigo-500" />
-                บันทึกจากเจ้าหน้าที่
-              </div>
-              <p className="text-sm text-slate-600 italic leading-relaxed">
-                {data.adminReply || "กำลังรอเจ้าหน้าที่เข้าตรวจสอบและดำเนินการ..."}
-              </p>
+            {data.replyHistory && data.replyHistory.length > 0 ? (
+              <div className="space-y-3">
+                {data.replyHistory.map((entry, index) => (
+                  <div key={index} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-inner">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center text-slate-800 font-bold text-sm">
+                        <MessageCircle size={16} className="mr-2 text-indigo-500" />
+                        บันทึกจากเจ้าหน้าที่
+                        <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">
+                          {entry.status}
+                        </span>
+                      </div>
+                      {index === 0 && (
+                        <span className="text-[9px] font-bold text-indigo-400 uppercase">ล่าสุด</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-600 italic leading-relaxed">
+                      {entry.reply}
+                    </p>
 
-              {/* แสดงรูปภาพหลายรูปจาก Admin (เมื่อซ่อมเสร็จ) */}
-              {data.adminImages && data.adminImages.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-slate-200/60">
-                  <p className="text-[10px] font-bold text-slate-400 mb-2">ภาพถ่ายยืนยันการแก้ไข:</p>
-                  {renderImageGallery(data.adminImages)}
-                </div>
-              )}
-            </div>
-            
-            {data.finishDate && (
-              <div className="mt-3 text-[11px] text-slate-400 font-medium">
-                ดำเนินการสำเร็จเมื่อ: {data.finishDate}
+                    {entry.images && entry.images.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-slate-200/60">
+                        <p className="text-[10px] font-bold text-slate-400 mb-2">ภาพถ่ายยืนยันการแก้ไข:</p>
+                        {renderImageGallery(entry.images)}
+                      </div>
+                    )}
+
+                    {entry.repliedAt && (
+                      <div className="mt-3 text-[11px] text-slate-400 font-medium">
+                        ตอบกลับเมื่อ: {entry.repliedAt}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-inner">
+                <p className="text-sm text-slate-500 italic">กำลังรอเจ้าหน้าที่เข้าตรวจสอบและดำเนินการ...</p>
               </div>
             )}
           </div>

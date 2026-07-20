@@ -3,6 +3,11 @@ import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import { Wrench, Upload, X, Send, AlertCircle, Clock, Image as ImageIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
+import api from '../api/axiosConfig';
+import { ENDPOINTS } from '../api/endpoints';
+
+const MAX_IMAGES = 5; // ต้องตรงกับ validate:"max=5" ฝั่ง backend
 
 const ReportIssue = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -32,20 +37,33 @@ const ReportIssue = () => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
+    const remainingSlots = MAX_IMAGES - report.files.length;
+    if (remainingSlots <= 0) {
+      Swal.fire({ title: `แนบได้สูงสุด ${MAX_IMAGES} รูป`, icon: 'warning', confirmButtonText: 'รับทราบ' });
+      e.target.value = '';
+      return;
+    }
+
+    const filesToAdd = files.slice(0, remainingSlots);
+    if (files.length > filesToAdd.length) {
+      Swal.fire({ title: `แนบได้สูงสุด ${MAX_IMAGES} รูป`, text: `เลือกเพิ่มได้อีก ${remainingSlots} รูป`, icon: 'warning', confirmButtonText: 'รับทราบ' });
+    }
+
     // อัปเดตไฟล์เข้าไปใน Array เดิม (Spread Operator)
     setReport(prev => ({
       ...prev,
-      files: [...(prev.files || []), ...files]
+      files: [...(prev.files || []), ...filesToAdd]
     }));
 
     // สร้าง URL สำหรับ Preview รูปใหม่ๆ
-    const newPreviews = files.map(file => ({
+    const newPreviews = filesToAdd.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
       url: URL.createObjectURL(file),
       name: file.name
     }));
 
     setPreviews(prev => [...(prev || []), ...newPreviews]);
+    e.target.value = '';
   };
 
   // 3. ฟังก์ชันลบรูปที่ไม่ต้องการออก
@@ -62,17 +80,42 @@ const ReportIssue = () => {
     setPreviews(updatedPreviews);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // จำลองการส่งข้อมูล (ในอนาคตคือส่วนของ Axios POST ส่ง Multipart Form Data)
-    console.log("ส่งข้อมูล:", {
-      ...report,
-      fileCount: report.files.length
+
+    Swal.fire({
+      title: 'กำลังส่งเรื่องแจ้งปัญหา...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
     });
 
-    alert("ส่งเรื่องแจ้งปัญหาเรียบร้อยแล้ว!");
-    navigate('/report-history'); 
+    try {
+      const form = new FormData();
+      form.append('category', report.category);
+      form.append('subject', report.subject);
+      form.append('description', report.description);
+      report.files.forEach((file) => form.append('images', file));
+
+      await api.post(ENDPOINTS.ISSUES.CREATE, form);
+
+      await Swal.fire({
+        title: 'สำเร็จ',
+        text: 'ส่งเรื่องแจ้งปัญหาเรียบร้อยแล้ว',
+        icon: 'success',
+        confirmButtonText: 'ตกลง'
+      });
+
+      navigate('/report-history');
+    } catch (err) {
+      Swal.fire({
+        title: 'เกิดข้อผิดพลาด',
+        text: err.response?.data?.message || 'ไม่สามารถส่งเรื่องแจ้งปัญหาได้ กรุณาลองใหม่อีกครั้ง',
+        icon: 'error',
+        confirmButtonText: 'ตกลง'
+      });
+    }
   };
 
   return (

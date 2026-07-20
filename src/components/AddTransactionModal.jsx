@@ -1,5 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { X, Save, PlusCircle, MinusCircle, DollarSign, Upload, FileText } from 'lucide-react';
+import Swal from 'sweetalert2';
+import api from '../api/axiosConfig';
+import { ENDPOINTS } from '../api/endpoints';
+
+const MAX_FILES = 5; // ต้องตรงกับ validate:"max=5" ฝั่ง backend (รองรับแค่ jpeg/png ไม่รองรับ PDF)
 
 const AddTransactionModal = ({ isOpen, onClose, onSave }) => {
   const [formData, setFormData] = useState({
@@ -19,17 +24,30 @@ const AddTransactionModal = ({ isOpen, onClose, onSave }) => {
     const selectedFiles = Array.from(e.target.files);
     if (selectedFiles.length === 0) return;
 
+    const remainingSlots = MAX_FILES - formData.files.length;
+    if (remainingSlots <= 0) {
+      Swal.fire({ title: `แนบได้สูงสุด ${MAX_FILES} ไฟล์`, icon: 'warning', confirmButtonText: 'รับทราบ' });
+      e.target.value = '';
+      return;
+    }
+
+    const filesToAdd = selectedFiles.slice(0, remainingSlots);
+    if (selectedFiles.length > filesToAdd.length) {
+      Swal.fire({ title: `แนบได้สูงสุด ${MAX_FILES} ไฟล์`, text: `เลือกเพิ่มได้อีก ${remainingSlots} ไฟล์`, icon: 'warning', confirmButtonText: 'รับทราบ' });
+    }
+
     setFormData(prev => ({
       ...prev,
       // ใช้เครื่องหมาย || [] เพื่อป้องกันกรณี prev.files เป็น null/undefined
-      files: [...(prev.files || []), ...selectedFiles] 
+      files: [...(prev.files || []), ...filesToAdd]
     }));
 
-    const newPreviews = selectedFiles.map(file => ({
+    const newPreviews = filesToAdd.map(file => ({
       url: URL.createObjectURL(file),
       name: file.name
     }));
     setPreviews(prev => [...(prev || []), ...newPreviews]);
+    e.target.value = '';
   };
 
   const removeFile = (index) => {
@@ -40,18 +58,48 @@ const AddTransactionModal = ({ isOpen, onClose, onSave }) => {
     setPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave({
-      ...formData,
-      amount: parseFloat(formData.amount),
-      id: `TXN-${Date.now()}`,
-      attachments: previews // ส่งรายการ Preview ไปแสดงในตาราง
+
+    Swal.fire({
+      title: 'กำลังบันทึกรายการ...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
     });
-    // Reset
-    setFormData({ title: '', type: 'expense', amount: '', date: new Date().toISOString().split('T')[0], category: 'ซ่อมแซม/บำรุงรักษา', files: [] });
-    setPreviews([]);
-    onClose();
+
+    try {
+      const form = new FormData();
+      form.append('title', formData.title);
+      form.append('type', formData.type);
+      form.append('amount', formData.amount);
+      form.append('date', formData.date);
+      form.append('category', formData.category);
+      formData.files.forEach((file) => form.append('files', file));
+
+      await api.post(ENDPOINTS.TRANSACTIONS.CREATE, form);
+
+      await Swal.fire({
+        title: 'สำเร็จ',
+        text: 'บันทึกรายการเรียบร้อยแล้ว',
+        icon: 'success',
+        confirmButtonText: 'ตกลง'
+      });
+
+      // Reset
+      setFormData({ title: '', type: 'expense', amount: '', date: new Date().toISOString().split('T')[0], category: 'ซ่อมแซม/บำรุงรักษา', files: [] });
+      setPreviews([]);
+      onSave();
+      onClose();
+    } catch (err) {
+      Swal.fire({
+        title: 'เกิดข้อผิดพลาด',
+        text: err.response?.data?.message || 'ไม่สามารถบันทึกรายการได้ กรุณาลองใหม่อีกครั้ง',
+        icon: 'error',
+        confirmButtonText: 'ตกลง'
+      });
+    }
   };
 
   return (
@@ -90,22 +138,22 @@ const AddTransactionModal = ({ isOpen, onClose, onSave }) => {
 
           {/* เพิ่มส่วนอัปโหลดไฟล์/ใบเสร็จ */}
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">แนบไฟล์/ใบเสร็จ (หลายไฟล์)</label>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileChange} 
-              accept="image/*,.pdf" 
+            <label className="block text-sm font-bold text-slate-700 mb-2">แนบรูปใบเสร็จ (หลายไฟล์)</label>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
               multiple // เพิ่มคุณสมบัติเลือกได้หลายไฟล์
-              className="hidden" 
+              className="hidden"
             />
-            
-            <div 
-              onClick={() => fileInputRef.current.click()} 
+
+            <div
+              onClick={() => fileInputRef.current.click()}
               className="h-24 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition mb-4"
             >
               <Upload size={24} className="text-slate-300 mb-1" />
-              <p className="text-[10px] text-slate-400">คลิกเพื่ออัปโหลดรูปภาพหรือ PDF</p>
+              <p className="text-[10px] text-slate-400">คลิกเพื่ออัปโหลดรูปภาพใบเสร็จ</p>
             </div>
 
             {/* ส่วนแสดงรายการไฟล์ที่เลือก */}

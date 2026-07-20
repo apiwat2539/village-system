@@ -1,5 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { X, Upload, Megaphone, Type, FileText, Tag, Save, Star, Image as ImageIcon } from 'lucide-react';
+import Swal from 'sweetalert2';
+import api from '../api/axiosConfig';
+import { ENDPOINTS } from '../api/endpoints';
+
+const MAX_IMAGES = 3; // ต้องตรงกับ validate:"max=3" ฝั่ง backend
 
 const AddNewsModal = ({ isOpen, onClose, onSave }) => {
   const [newsData, setNewsData] = useState({
@@ -18,18 +23,31 @@ const AddNewsModal = ({ isOpen, onClose, onSave }) => {
     const selectedFiles = Array.from(e.target.files);
     if (selectedFiles.length === 0) return;
 
+    const remainingSlots = MAX_IMAGES - newsData.images.length;
+    if (remainingSlots <= 0) {
+      Swal.fire({ title: `แนบได้สูงสุด ${MAX_IMAGES} รูป`, icon: 'warning', confirmButtonText: 'รับทราบ' });
+      e.target.value = '';
+      return;
+    }
+
+    const filesToAdd = selectedFiles.slice(0, remainingSlots);
+    if (selectedFiles.length > filesToAdd.length) {
+      Swal.fire({ title: `แนบได้สูงสุด ${MAX_IMAGES} รูป`, text: `เลือกเพิ่มได้อีก ${remainingSlots} รูป`, icon: 'warning', confirmButtonText: 'รับทราบ' });
+    }
+
     // อัปเดตไฟล์เข้าไปใน State
     setNewsData(prev => ({
       ...prev,
-      images: [...(prev.images || []), ...selectedFiles]
+      images: [...(prev.images || []), ...filesToAdd]
     }));
 
     // สร้าง Preview URLs
-    const newPreviews = selectedFiles.map(file => ({
+    const newPreviews = filesToAdd.map(file => ({
       url: URL.createObjectURL(file),
       name: file.name
     }));
     setPreviews(prev => [...(prev || []), ...newPreviews]);
+    e.target.value = '';
   };
 
   const removeFile = (index) => {
@@ -43,14 +61,47 @@ const AddNewsModal = ({ isOpen, onClose, onSave }) => {
     setPreviews(updatedPreviews);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // ภาพแรก (index 0) จะถูกส่งไปในฐานะ coverImage โดยปริยาย
-    onSave(newsData);
-    onClose();
-    // ล้างข้อมูลหลังบันทึก
-    setNewsData({ title: '', content: '', category: 'ประกาศทั่วไป', images: [] });
-    setPreviews([]);
+
+    Swal.fire({
+      title: 'กำลังเผยแพร่ประกาศ...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    try {
+      const form = new FormData();
+      form.append('title', newsData.title);
+      form.append('content', newsData.content);
+      form.append('category', newsData.category);
+      // ภาพแรก (index 0) ถูกใช้เป็นภาพหน้าปกโดยปริยาย (เรียงตามลำดับที่แนบ)
+      newsData.images.forEach((file) => form.append('images', file));
+
+      await api.post(ENDPOINTS.ANNOUNCEMENTS.CREATE, form);
+
+      await Swal.fire({
+        title: 'สำเร็จ',
+        text: 'เผยแพร่ประกาศเรียบร้อยแล้ว และส่งเข้ากลุ่ม LINE หมู่บ้านให้อัตโนมัติ',
+        icon: 'success',
+        confirmButtonText: 'ตกลง'
+      });
+
+      // ล้างข้อมูลหลังบันทึก
+      setNewsData({ title: '', content: '', category: 'ประกาศทั่วไป', images: [] });
+      setPreviews([]);
+      onSave();
+      onClose();
+    } catch (err) {
+      Swal.fire({
+        title: 'เกิดข้อผิดพลาด',
+        text: err.response?.data?.message || 'ไม่สามารถเผยแพร่ประกาศได้ กรุณาลองใหม่อีกครั้ง',
+        icon: 'error',
+        confirmButtonText: 'ตกลง'
+      });
+    }
   };
 
   return (

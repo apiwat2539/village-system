@@ -1,23 +1,26 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Megaphone, CreditCard, Wrench, User, Clock, FilePlus, File, ClipboardList, Users, X } from 'lucide-react';
+import { Megaphone, CreditCard, Wrench, User, Clock, FilePlus, File, ClipboardList, Users, Settings, X } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 // ✅ 1. ต้องรับ { isOpen, onClose } เข้ามาเป็น Props
 const Sidebar = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   const menuItems = [
-    { icon: <Megaphone size={20}/>, label: "ประกาศข่าวสาร", path: "/dashboard" },
-    { icon: <Wrench size={20}/>, label: "แจ้งปัญหา/ซ่อมแซม", path: "/report" },
-    { icon: <ClipboardList size={20}/>, label: "ประวัติการแจ้งเรื่อง", path: "/report-history" },
-    { icon: <FilePlus size={20}/>, label: "รับปัญหา/แจ้งซ่อม", path: "/admin-report" },
-    { icon: <CreditCard size={20}/>, label: "ชำระค่าส่วนกลาง", path: "/payment" },
-    { icon: <Clock size={20}/>, label: "สถานะค่าส่วนกลาง", path: "/admin-payment-tracking" },
-    { icon: <File size={20}/>, label: "บัญชีหมู่บ้าน", path: "/admin-account-manage" },
-    { icon: <Users size={20}/>, label: "จัดการสมาชิก", path: "/admin-user-manage" },
-    { icon: <User size={20}/>, label: "ข้อมูลส่วนตัว", path: "/profile" },
-  ];
+    { icon: <Megaphone size={20}/>, label: "ประกาศข่าวสาร", path: "/dashboard", roles: ['admin', 'user'] },
+    { icon: <Wrench size={20}/>, label: "แจ้งปัญหา/ซ่อมแซม", path: "/report", roles: ['admin', 'user'] },
+    { icon: <ClipboardList size={20}/>, label: "ประวัติการแจ้งเรื่อง", path: "/report-history", roles: ['admin', 'user'] },
+    { icon: <FilePlus size={20}/>, label: "รับปัญหา/แจ้งซ่อม", path: "/admin-report", roles: ['admin'] },
+    { icon: <CreditCard size={20}/>, label: "ชำระค่าส่วนกลาง", path: "/payment", roles: ['admin', 'user'] },
+    { icon: <Clock size={20}/>, label: "สถานะค่าส่วนกลาง", path: "/admin-payment-tracking", roles: ['admin'] },
+    { icon: <Settings size={20}/>, label: "ตั้งค่าค่าส่วนกลาง", path: "/admin-fee-config", roles: ['admin'] },
+    { icon: <File size={20}/>, label: "บัญชีหมู่บ้าน", path: "/admin-account-manage", roles: ['admin'] },
+    { icon: <Users size={20}/>, label: "จัดการสมาชิก", path: "/admin-user-manage", roles: ['admin'] },
+    { icon: <User size={20}/>, label: "ข้อมูลส่วนตัว", path: "/profile", roles: ['admin', 'user'] },
+  ].filter((item) => item.roles.includes(user?.role));
 
   return (
     <>

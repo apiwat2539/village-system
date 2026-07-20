@@ -1,5 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { X, Save, Upload, CheckCircle2, Clock, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import Swal from 'sweetalert2';
+import api from '../api/axiosConfig';
+import { ENDPOINTS } from '../api/endpoints';
 
 const AdminReplyModal = ({ isOpen, onClose, report, onUpdate }) => {
   const [replyText, setReplyText] = useState('');
@@ -41,22 +44,51 @@ const AdminReplyModal = ({ isOpen, onClose, report, onUpdate }) => {
     setPreviews(updatedPreviews);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onUpdate({
-      ...report,
-      adminReply: replyText,
-      status: status,
-      // ส่งรายการรูปภาพทั้งหมดกลับไป (หรือส่ง previews ไปโชว์ในตาราง)
-      adminImages: previews, 
-      finishDate: status === "เสร็จสิ้น" ? new Date().toLocaleDateString('th-TH') : null
+
+    if (!status) {
+      Swal.fire({ title: 'กรุณาเลือกสถานะ', icon: 'warning', confirmButtonText: 'รับทราบ' });
+      return;
+    }
+
+    Swal.fire({
+      title: 'กำลังบันทึกการอัปเดต...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
     });
-    
-    // ล้างข้อมูลหลังบันทึก
-    setAdminFiles([]);
-    setPreviews([]);
-    setReplyText('');
-    onClose();
+
+    try {
+      const form = new FormData();
+      form.append('status', status);
+      form.append('adminReply', replyText);
+      adminFiles.forEach((file) => form.append('adminImages', file));
+
+      await api.put(ENDPOINTS.ISSUES.REPLY(report.id), form);
+
+      await Swal.fire({
+        title: 'สำเร็จ',
+        text: 'บันทึกการอัปเดตเรียบร้อยแล้ว',
+        icon: 'success',
+        confirmButtonText: 'ตกลง'
+      });
+
+      // ล้างข้อมูลหลังบันทึก
+      setAdminFiles([]);
+      setPreviews([]);
+      setReplyText('');
+      setStatus('');
+      onUpdate();
+    } catch (err) {
+      Swal.fire({
+        title: 'เกิดข้อผิดพลาด',
+        text: err.response?.data?.message || 'ไม่สามารถบันทึกการอัปเดตได้',
+        icon: 'error',
+        confirmButtonText: 'ตกลง'
+      });
+    }
   };
 
   return (

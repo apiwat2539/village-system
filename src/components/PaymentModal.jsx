@@ -1,9 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { X, Copy, UploadCloud, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import Swal from 'sweetalert2';
+import api from '../api/axiosConfig';
+import { ENDPOINTS } from '../api/endpoints';
 
-const PaymentModal = ({ isOpen, onClose, amount }) => {
+const PaymentModal = ({ isOpen, onClose, amount, paymentType }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef(null); // ใช้สำหรับอ้างอิง input file
 
   if (!isOpen) return null;
@@ -23,11 +27,38 @@ const PaymentModal = ({ isOpen, onClose, amount }) => {
     }
   };
 
-  const handleConfirm = () => {
-    // ตรงนี้คือจุดที่เราจะส่งไฟล์ไปที่ Golang Backend ในอนาคต
-    console.log("ไฟล์สลิปที่จะส่ง:", selectedFile);
-    alert("ส่งหลักฐานเรียบร้อย! นิติบุคคลจะตรวจสอบภายใน 24 ชม.");
-    onClose();
+  const handleConfirm = async () => {
+    if (!selectedFile) return;
+
+    setIsSubmitting(true);
+    try {
+      const form = new FormData();
+      form.append('amount', amount);
+      form.append('paymentType', paymentType);
+      form.append('slip', selectedFile);
+
+      await api.post(ENDPOINTS.PAYMENTS.SUBMIT, form);
+
+      await Swal.fire({
+        title: 'สำเร็จ',
+        text: 'ส่งหลักฐานเรียบร้อย! นิติบุคคลจะตรวจสอบภายใน 24 ชม.',
+        icon: 'success',
+        confirmButtonText: 'ตกลง'
+      });
+
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      onClose();
+    } catch (err) {
+      Swal.fire({
+        title: 'เกิดข้อผิดพลาด',
+        text: err.response?.data?.message || 'ไม่สามารถส่งหลักฐานการโอนได้ กรุณาลองใหม่อีกครั้ง',
+        icon: 'error',
+        confirmButtonText: 'ตกลง'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -97,16 +128,16 @@ const PaymentModal = ({ isOpen, onClose, amount }) => {
               <span className="text-gray-500">ยอดชำระสุทธิ</span>
               <span className="font-bold text-gray-800">฿{amount.toLocaleString()}</span>
             </div>
-            <button 
-              disabled={!selectedFile}
+            <button
+              disabled={!selectedFile || isSubmitting}
               onClick={handleConfirm}
               className={`w-full py-4 rounded-2xl font-bold transition shadow-lg ${
-                selectedFile 
-                ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100' 
+                selectedFile && !isSubmitting
+                ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'
                 : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
               }`}
             >
-              ยืนยันการแจ้งโอน
+              {isSubmitting ? 'กำลังส่ง...' : 'ยืนยันการแจ้งโอน'}
             </button>
           </div>
         </div>

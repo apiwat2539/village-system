@@ -1,44 +1,115 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import Pagination from '../components/Pagination';
-import { Search, AlertCircle, CheckCircle2, MessageCircle, Home, Inbox } from 'lucide-react';
+import { Search, AlertCircle, CheckCircle2, MessageCircle, Home, Inbox, Loader2, FileText } from 'lucide-react';
+import Swal from 'sweetalert2';
+import api from '../api/axiosConfig';
+import { ENDPOINTS } from '../api/endpoints';
+
+const thisMonth = () => new Date().toISOString().slice(0, 7); // "YYYY-MM"
 
 const AdminPaymentTracking = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('ทั้งหมด');
-  
+
   // --- 1. Pagination States ---
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 3;
+  const itemsPerPage = 10;
 
-  const [payments] = useState([
-    { id: 1, houseNo: "99/1", name: "สมชาย รักดี", lineId: "somchai_line", monthlyFee: 500, outstandingAmount: 0, currentMonthStatus: "paid", overdueMonths: 0 },
-    { id: 2, houseNo: "99/2", name: "สมศรี มีสุข", lineId: "somsri_line", monthlyFee: 500, outstandingAmount: 1000, currentMonthStatus: "pending", overdueMonths: 2 },
-    { id: 3, houseNo: "99/3", name: "วิชัย ใจกล้า", lineId: "wichai_line", monthlyFee: 500, outstandingAmount: 500, currentMonthStatus: "pending", overdueMonths: 1 },
-    { id: 4, houseNo: "99/4", name: "มานี มานะ", lineId: "manee_ch", monthlyFee: 500, outstandingAmount: 0, currentMonthStatus: "paid", overdueMonths: 0 },
-    { id: 5, houseNo: "99/1", name: "สมชาย รักดี", lineId: "somchai_line", monthlyFee: 500, outstandingAmount: 0, currentMonthStatus: "paid", overdueMonths: 0 },
-    { id: 6, houseNo: "99/2", name: "สมศรี มีสุข", lineId: "somsri_line", monthlyFee: 500, outstandingAmount: 1000, currentMonthStatus: "pending", overdueMonths: 2 },
-    { id: 7, houseNo: "99/3", name: "วิชัย ใจกล้า", lineId: "wichai_line", monthlyFee: 500, outstandingAmount: 500, currentMonthStatus: "pending", overdueMonths: 1 },
-    { id: 8, houseNo: "99/4", name: "มานี มานะ", lineId: "manee_ch", monthlyFee: 500, outstandingAmount: 0, currentMonthStatus: "paid", overdueMonths: 0 },
-    // ... สามารถเพิ่มข้อมูล Mock Data เพิ่มเติมได้ที่นี่
-  ]);
+  const [payments, setPayments] = useState([]);
+  const [pending, setPending] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [genMonth, setGenMonth] = useState(thisMonth());
+
+  const fetchPayments = async () => {
+    setIsLoading(true);
+    try {
+      const [trackRes, pendingRes] = await Promise.all([
+        api.get(ENDPOINTS.PAYMENTS.TRACKING),
+        api.get(ENDPOINTS.PAYMENTS.PENDING),
+      ]);
+      setPayments(Array.isArray(trackRes.data.data) ? trackRes.data.data : []);
+      setPending(Array.isArray(pendingRes.data.data) ? pendingRes.data.data : []);
+    } catch (err) {
+      console.error("Fetch payment tracking error:", err);
+      Swal.fire({
+        title: 'เกิดข้อผิดพลาด',
+        text: 'ไม่สามารถดึงข้อมูลการชำระเงินได้',
+        icon: 'error',
+        confirmButtonText: 'ตกลง'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPayments();
+  }, []);
+
+  const handleApprove = async (id) => {
+    Swal.fire({ title: 'กำลังอนุมัติ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    try {
+      await api.post(ENDPOINTS.PAYMENTS.APPROVE(id));
+      await Swal.fire({ title: 'อนุมัติแล้ว', text: 'ตัดยอดเข้าบิลเรียบร้อยแล้ว', icon: 'success', confirmButtonText: 'ตกลง' });
+      fetchPayments();
+    } catch (err) {
+      Swal.fire({ title: 'เกิดข้อผิดพลาด', text: err.response?.data?.message || 'ไม่สามารถอนุมัติได้', icon: 'error', confirmButtonText: 'ตกลง' });
+    }
+  };
+
+  const handleReject = async (id) => {
+    const confirm = await Swal.fire({ title: 'ปฏิเสธการชำระ?', icon: 'warning', showCancelButton: true, confirmButtonText: 'ปฏิเสธ', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#ef4444' });
+    if (!confirm.isConfirmed) return;
+    try {
+      await api.post(ENDPOINTS.PAYMENTS.REJECT(id));
+      await Swal.fire({ title: 'ปฏิเสธแล้ว', icon: 'success', confirmButtonText: 'ตกลง' });
+      fetchPayments();
+    } catch (err) {
+      Swal.fire({ title: 'เกิดข้อผิดพลาด', text: err.response?.data?.message || 'ไม่สามารถปฏิเสธได้', icon: 'error', confirmButtonText: 'ตกลง' });
+    }
+  };
+
+  const handleGenerateBills = async () => {
+    Swal.fire({ title: 'กำลังออกบิล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    try {
+      const res = await api.post(ENDPOINTS.BILLS.GENERATE, { month: genMonth });
+      const r = res.data.data || {};
+      const lines = [
+        `ออกบิลใหม่: ${r.generated || 0} รายการ`,
+        (r.skippedExists ? `มีบิลอยู่แล้ว: ${r.skippedExists}` : ''),
+        (r.skippedNoRate ? `ยังไม่ได้ตั้งเรต: ${r.skippedNoRate}` : ''),
+        (r.skippedNoStart ? `ยังไม่ถึงเดือนเริ่มเก็บ: ${r.skippedNoStart}` : ''),
+        (r.generated > 0 ? 'ระบบแจ้งเตือนเจ้าของบ้านผ่าน LINE ให้อัตโนมัติแล้ว' : ''),
+      ].filter(Boolean);
+      await Swal.fire({
+        title: 'ออกบิลเสร็จสิ้น',
+        html: lines.join('<br/>') + (r.warnings?.length ? `<br/><span style="color:#d97706;font-size:12px">${r.warnings.join('<br/>')}</span>` : ''),
+        icon: 'success',
+        confirmButtonText: 'ตกลง'
+      });
+      fetchPayments();
+    } catch (err) {
+      Swal.fire({ title: 'เกิดข้อผิดพลาด', text: err.response?.data?.message || 'ไม่สามารถออกบิลได้', icon: 'error', confirmButtonText: 'ตกลง' });
+    }
+  };
 
   // --- 2. Filter Logic (หุ้มด้วย useMemo เพื่อประสิทธิภาพ) ---
   const filteredPayments = useMemo(() => {
     return payments.filter(p => {
       const matchSearch = p.houseNo.includes(searchTerm) || p.name.includes(searchTerm);
-      const matchStatus = filterStatus === 'ทั้งหมด' || 
-                         (filterStatus === 'ค้างชำระ' && p.outstandingAmount > 0) ||
-                         (filterStatus === 'จ่ายแล้ว' && p.outstandingAmount === 0);
+      const matchStatus = filterStatus === 'ทั้งหมด' ||
+        (filterStatus === 'ค้างชำระ' && p.outstandingAmount > 0) ||
+        (filterStatus === 'จ่ายแล้ว' && p.outstandingAmount === 0);
       return matchSearch && matchStatus;
     });
   }, [searchTerm, filterStatus, payments]);
 
   // --- 3. Pagination Logic ---
   const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
-  
+
   const currentItems = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredPayments.slice(startIndex, startIndex + itemsPerPage);
@@ -55,39 +126,62 @@ const AdminPaymentTracking = () => {
     setCurrentPage(1); // กลับไปหน้าแรกเสมอเมื่อกรอง
   };
 
-  const handleNotifyLine = (user) => {
-    alert(`ส่งข้อความแจ้งเตือนยอดค้างชำระ ${user.outstandingAmount} บาท ไปยังคุณ ${user.name} เรียบร้อยแล้ว`);
+  const handleNotifyLine = async (user) => {
+    try {
+      await api.post(ENDPOINTS.PAYMENTS.NOTIFY, { houseNo: user.houseNo });
+      Swal.fire({
+        title: 'ส่งแจ้งเตือนแล้ว',
+        text: `แจ้งเตือนยอดค้างชำระ ${user.outstandingAmount.toLocaleString()} บาท ไปยังคุณ ${user.name} เรียบร้อยแล้ว`,
+        icon: 'success',
+        confirmButtonText: 'ตกลง'
+      });
+    } catch (err) {
+      Swal.fire({
+        title: 'เกิดข้อผิดพลาด',
+        text: err.response?.data?.message || 'ไม่สามารถส่งการแจ้งเตือนได้',
+        icon: 'error',
+        confirmButtonText: 'ตกลง'
+      });
+    }
   };
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-kanit">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      
+
       <div className="flex-1 flex flex-col min-w-0">
         <Header onMenuClick={() => setIsSidebarOpen(true)} />
 
         <main className="p-4 md:p-8">
           <div className="max-w-6xl mx-auto">
-            
+
             {/* Header Section */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
               <div>
                 <h2 className="text-2xl font-black text-slate-800">ติดตามการชำระเงิน</h2>
                 <p className="text-sm text-slate-500">ตรวจสอบสถานะค่าส่วนกลางและแจ้งเตือนลูกบ้าน ({filteredPayments.length} รายการ)</p>
+                <div className="flex items-center gap-2 mt-3">
+                  <input type="month" value={genMonth} onChange={(e) => setGenMonth(e.target.value)}
+                    className="text-sm border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" />
+                  <button onClick={handleGenerateBills}
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-700 flex items-center shadow-sm">
+                    <FileText size={16} className="mr-1.5" /> ออกบิลประจำเดือน
+                  </button>
+                </div>
               </div>
-              
+
               <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
                 <div className="relative flex-1 sm:w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
-                    type="text" 
-                    placeholder="ค้นหาบ้านเลขที่/ชื่อ..." 
+                  <input
+                    type="text"
+                    placeholder="ค้นหาบ้านเลขที่/ชื่อ..."
                     className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 bg-white outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition"
                     value={searchTerm}
                     onChange={handleSearch}
                   />
                 </div>
-                <select 
+                <select
                   className="bg-white border border-slate-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-600"
                   value={filterStatus}
                   onChange={handleFilter}
@@ -99,7 +193,43 @@ const AdminPaymentTracking = () => {
               </div>
             </div>
 
-            {filteredPayments.length > 0 ? (
+            {/* รายการรออนุมัติการชำระ */}
+            {!isLoading && pending.length > 0 && (
+              <div className="mb-8 bg-white rounded-3xl border border-amber-200 shadow-sm overflow-hidden">
+                <div className="bg-amber-50 px-5 py-3 border-b border-amber-100">
+                  <h3 className="font-bold text-amber-700 text-sm">รออนุมัติการชำระ ({pending.length})</h3>
+                </div>
+                <div className="divide-y divide-slate-50">
+                  {pending.map((p) => (
+                    <div key={p.id} className="flex items-center gap-4 p-4">
+                      {p.slipUrl ? (
+                        <img src={p.slipUrl} alt="slip" className="w-16 h-16 object-cover rounded-xl border border-slate-200 cursor-zoom-in flex-shrink-0"
+                          onClick={() => window.open(p.slipUrl, '_blank')} />
+                      ) : (
+                        <div className="w-16 h-16 rounded-xl bg-slate-100 flex items-center justify-center text-slate-300 flex-shrink-0"><Inbox size={20} /></div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-slate-800">บ้านเลขที่ {p.houseNo}</div>
+                        <div className="text-sm text-slate-500">฿{p.amount.toLocaleString()} • {p.createdAt}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleApprove(p.id)}
+                          className="bg-green-500 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-green-600 transition">อนุมัติ</button>
+                        <button onClick={() => handleReject(p.id)}
+                          className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-500 hover:text-white transition">ปฏิเสธ</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                <Loader2 className="animate-spin mb-4" size={40} />
+                <p>กำลังโหลดข้อมูล...</p>
+              </div>
+            ) : filteredPayments.length > 0 ? (
               <>
                 {/* Desktop Table View */}
                 <div className="hidden md:block bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
@@ -132,10 +262,10 @@ const AdminPaymentTracking = () => {
                               ฿{item.monthlyFee.toLocaleString()}
                             </td>
                             <td className="p-5 text-center">
-                               <div className={`text-sm font-black ${item.outstandingAmount > 0 ? 'text-red-500' : 'text-slate-300'}`}>
-                                 ฿{item.outstandingAmount.toLocaleString()}
-                               </div>
-                               {item.overdueMonths > 0 && <div className="text-[10px] text-red-400 mt-1">ค้าง {item.overdueMonths} เดือน</div>}
+                              <div className={`text-sm font-black ${item.outstandingAmount > 0 ? 'text-red-500' : 'text-slate-300'}`}>
+                                ฿{item.outstandingAmount.toLocaleString()}
+                              </div>
+                              {item.overdueMonths > 0 && <div className="text-[10px] text-red-400 mt-1">ค้าง {item.overdueMonths} เดือน</div>}
                             </td>
                             <td className="p-5">
                               <div className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-full mx-auto w-fit ${item.outstandingAmount === 0 ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'}`}>
@@ -145,7 +275,7 @@ const AdminPaymentTracking = () => {
                             </td>
                             <td className="p-5 text-center">
                               {item.outstandingAmount > 0 && (
-                                <button 
+                                <button
                                   onClick={() => handleNotifyLine(item)}
                                   className="p-2.5 bg-green-50 text-green-600 rounded-xl hover:bg-green-600 hover:text-white transition shadow-sm active:scale-95"
                                 >
@@ -178,7 +308,7 @@ const AdminPaymentTracking = () => {
                           {item.outstandingAmount === 0 ? 'PAID' : 'OVERDUE'}
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-50">
                         <div>
                           <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tight">ยอดรายเดือน</p>
@@ -192,10 +322,10 @@ const AdminPaymentTracking = () => {
 
                       <div className="flex justify-between items-center">
                         <div className="text-xs text-slate-400">
-                           {item.overdueMonths > 0 ? `ค้างทั้งหมด ${item.overdueMonths} เดือน` : 'ไม่มีประวัติค้างชำระ'}
+                          {item.overdueMonths > 0 ? `ค้างทั้งหมด ${item.overdueMonths} เดือน` : 'ไม่มีประวัติค้างชำระ'}
                         </div>
                         {item.outstandingAmount > 0 && (
-                          <button 
+                          <button
                             onClick={() => handleNotifyLine(item)}
                             className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md active:scale-95 transition"
                           >
@@ -210,12 +340,12 @@ const AdminPaymentTracking = () => {
                 {/* --- Pagination Component --- */}
                 {totalPages > 1 && (
                   <div className="mt-8">
-                    <Pagination 
+                    <Pagination
                       currentPage={currentPage}
                       totalPages={totalPages}
                       onPageChange={(page) => {
-                          setCurrentPage(page);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        setCurrentPage(page);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
                     />
                   </div>
