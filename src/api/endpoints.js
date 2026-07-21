@@ -1,7 +1,11 @@
 // แยกส่วน Host เพื่อให้เปลี่ยนที่เดียวเวลา Deploy
-export const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:1323";
+// VITE_API_BASE_URL (ถ้าตั้งไว้ใน .env) ชนะเสมอ ไม่งั้น fallback ตาม mode:
+// `npm run dev` -> localhost, `npm run build`/deploy จริง -> backend บน snapdeploy
+const DEFAULT_BASE_URL = import.meta.env.PROD
+    ? "https://village-system-backend-b7adb.containers.snapdeploy.app"
+    : "http://localhost:1323";
 
-// export const BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://village-system-backend-b7adb.containers.snapdeploy.app";
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_BASE_URL;
 
 export const ENDPOINTS = {
     AUTH: {
