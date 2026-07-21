@@ -9,13 +9,20 @@ const RegisterLine = () => {
   const navigate = useNavigate();
   const { registrationTicket, displayName, pictureUrl } = location.state || {};
 
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+  // LINE ส่ง displayName มาเป็นชื่อเต็มก้อนเดียว ไม่แยก first/last ให้
+  // เดาแบบง่าย ๆ โดยตัดคำแรกเป็นชื่อ ที่เหลือเป็นนามสกุล ผู้ใช้แก้เองได้
+  const splitDisplayName = (name) => {
+    if (!name) return { firstName: '', lastName: '' };
+    const [firstName, ...rest] = name.trim().split(/\s+/);
+    return { firstName, lastName: rest.join(' ') };
+  };
+
+  const [formData, setFormData] = useState(() => ({
+    ...splitDisplayName(displayName),
     username: '',
     houseNo: '',
     mobileNo: ''
-  });
+  }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();

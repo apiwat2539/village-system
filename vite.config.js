@@ -7,4 +7,7 @@ export default defineConfig({
     react(),
     tailwindcss(), // เพิ่มบรรทッドนี้ลงในอาร์เรย์ plugins
   ],
+  server: {
+    allowedHosts: ['divorcee-outgrow-kinship.ngrok-free.dev'],
+  },
 })

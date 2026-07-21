@@ -1,5 +1,7 @@
 // แยกส่วน Host เพื่อให้เปลี่ยนที่เดียวเวลา Deploy
-export const BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://village-system-backend-b7adb.containers.snapdeploy.app";
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:1323";
+
+// export const BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://village-system-backend-b7adb.containers.snapdeploy.app";
 
 export const ENDPOINTS = {
     AUTH: {
@@ -24,9 +26,11 @@ export const ENDPOINTS = {
         GET_HISTORY: "/api/v1/payments",
         SUBMIT: "/api/v1/payments",
         SUMMARY: "/api/v1/payments/summary",
+        MY_BILLS: "/api/v1/payments/bills",
         PENDING: "/api/v1/payments/pending",
         APPROVE: (id) => `/api/v1/payments/${id}/approve`,
         REJECT: (id) => `/api/v1/payments/${id}/reject`,
+        RECEIPT: (id) => `/api/v1/payments/${id}/receipt`,
         TRACKING: "/api/v1/payment/tracking/status",
         NOTIFY: "/api/v1/admin/notify-line",
     },
@@ -47,6 +51,8 @@ export const ENDPOINTS = {
     TRANSACTIONS: {
         GET_ALL: "/api/v1/transactions",
         CREATE: "/api/v1/transactions",
+        // range: "month" | "year" | "all"
+        OVERVIEW: (range) => `/api/v1/transactions/overview?range=${range}`,
     },
     FEE_CONFIG: {
         GET_RATES: "/api/v1/fee-config/rates",
@@ -56,6 +62,9 @@ export const ENDPOINTS = {
     },
     BILLS: {
         GENERATE: "/api/v1/bills/generate",
+        CREATE: "/api/v1/bills",
+        ISSUE_INVOICE: (id) => `/api/v1/bills/${id}/invoice`,
+        GET_INVOICE: (id) => `/api/v1/bills/${id}/invoice`,
     },
 };
 

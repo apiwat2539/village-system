@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { X, Save, PlusCircle, MinusCircle, DollarSign, Upload, FileText } from 'lucide-react';
 import Swal from 'sweetalert2';
 import api from '../api/axiosConfig';
@@ -6,17 +6,35 @@ import { ENDPOINTS } from '../api/endpoints';
 
 const MAX_FILES = 5; // ต้องตรงกับ validate:"max=5" ฝั่ง backend (รองรับแค่ jpeg/png ไม่รองรับ PDF)
 
-const AddTransactionModal = ({ isOpen, onClose, onSave }) => {
-  const [formData, setFormData] = useState({
-    title: '',
-    type: 'expense',
-    amount: '',
-    date: new Date().toISOString().split('T')[0],
-    category: 'ซ่อมแซม/บำรุงรักษา',
-    files: []
-  });
-  const [previews, setPreviews] = useState([]);
+const CATEGORIES = {
+  income: ['ค่าส่วนกลาง', 'ค่าเช่าพื้นที่ส่วนกลาง', 'เงินบริจาค/สนับสนุน', 'รายได้อื่นๆ'],
+  expense: ['ซ่อมแซม/บำรุงรักษา', 'เงินเดือนพนักงาน', 'ค่าน้ำ-ไฟฟ้าส่วนกลาง', 'ค่าใช้จ่ายอื่นๆ'],
+};
+
+const emptyForm = (type) => ({
+  title: '',
+  type,
+  amount: '',
+  date: new Date().toISOString().split('T')[0],
+  category: CATEGORIES[type][0],
+  files: []
+});
+
+const AddTransactionModal = ({ isOpen, onClose, onSave, defaultType = 'expense' }) => {
+  const [formData, setFormData] = useState(emptyForm(defaultType));
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(emptyForm(defaultType));
+    }
+  }, [isOpen, defaultType]);
+
+  // derived from formData.files so there's no second state to keep in sync
+  const previews = useMemo(
+    () => formData.files.map((file) => ({ url: URL.createObjectURL(file), name: file.name })),
+    [formData.files]
+  );
 
   if (!isOpen) return null;
 
@@ -41,12 +59,6 @@ const AddTransactionModal = ({ isOpen, onClose, onSave }) => {
       // ใช้เครื่องหมาย || [] เพื่อป้องกันกรณี prev.files เป็น null/undefined
       files: [...(prev.files || []), ...filesToAdd]
     }));
-
-    const newPreviews = filesToAdd.map(file => ({
-      url: URL.createObjectURL(file),
-      name: file.name
-    }));
-    setPreviews(prev => [...(prev || []), ...newPreviews]);
     e.target.value = '';
   };
 
@@ -55,7 +67,6 @@ const AddTransactionModal = ({ isOpen, onClose, onSave }) => {
       ...prev,
       files: prev.files.filter((_, i) => i !== index)
     }));
-    setPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -88,8 +99,7 @@ const AddTransactionModal = ({ isOpen, onClose, onSave }) => {
       });
 
       // Reset
-      setFormData({ title: '', type: 'expense', amount: '', date: new Date().toISOString().split('T')[0], category: 'ซ่อมแซม/บำรุงรักษา', files: [] });
-      setPreviews([]);
+      setFormData(emptyForm(defaultType));
       onSave();
       onClose();
     } catch (err) {
@@ -116,13 +126,26 @@ const AddTransactionModal = ({ isOpen, onClose, onSave }) => {
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
           {/* ส่วนเลือกประเภท (Income/Expense) เหมือนเดิม */}
           <div className="flex bg-slate-100 p-1 rounded-xl">
-            <button type="button" onClick={() => setFormData({...formData, type: 'income'})} className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${formData.type === 'income' ? 'bg-green-500 text-white shadow-sm' : 'text-slate-500'}`}>รายรับ</button>
-            <button type="button" onClick={() => setFormData({...formData, type: 'expense'})} className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${formData.type === 'expense' ? 'bg-red-500 text-white shadow-sm' : 'text-slate-500'}`}>รายจ่าย</button>
+            <button type="button" onClick={() => setFormData({...formData, type: 'income', category: CATEGORIES.income[0]})} className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${formData.type === 'income' ? 'bg-green-500 text-white shadow-sm' : 'text-slate-500'}`}>รายรับ</button>
+            <button type="button" onClick={() => setFormData({...formData, type: 'expense', category: CATEGORIES.expense[0]})} className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${formData.type === 'expense' ? 'bg-red-500 text-white shadow-sm' : 'text-slate-500'}`}>รายจ่าย</button>
           </div>
 
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1">หัวข้อรายการ</label>
             <input required type="text" className="w-full border border-slate-200 p-2.5 rounded-xl outline-none" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">หมวดหมู่</label>
+            <select
+              className="w-full border border-slate-200 p-2.5 rounded-xl outline-none bg-white"
+              value={formData.category}
+              onChange={(e) => setFormData({...formData, category: e.target.value})}
+            >
+              {CATEGORIES[formData.type].map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

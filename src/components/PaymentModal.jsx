@@ -1,22 +1,17 @@
 import React, { useState, useRef } from 'react';
-import { X, Copy, UploadCloud, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import { X, UploadCloud } from 'lucide-react';
 import Swal from 'sweetalert2';
 import api from '../api/axiosConfig';
 import { ENDPOINTS } from '../api/endpoints';
+import PaymentQR from './PaymentQR';
 
-const PaymentModal = ({ isOpen, onClose, amount, paymentType }) => {
+const PaymentModal = ({ isOpen, onClose, amount, paymentType, targetBillId, label }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef(null); // ใช้สำหรับอ้างอิง input file
 
   if (!isOpen) return null;
-
-  const bankInfo = {
-    bankName: "ธนาคารกสิกรไทย (K-Bank)",
-    accountNumber: "123-4-56789-0",
-    accountName: "นิติบุคคลหมู่บ้านวิลเลจคอนเนค"
-  };
 
   // ฟังก์ชันเมื่อมีการเลือกไฟล์
   const handleFileChange = (event) => {
@@ -35,6 +30,7 @@ const PaymentModal = ({ isOpen, onClose, amount, paymentType }) => {
       const form = new FormData();
       form.append('amount', amount);
       form.append('paymentType', paymentType);
+      if (targetBillId) form.append('targetBillId', targetBillId);
       form.append('slip', selectedFile);
 
       await api.post(ENDPOINTS.PAYMENTS.SUBMIT, form);
@@ -67,25 +63,16 @@ const PaymentModal = ({ isOpen, onClose, amount, paymentType }) => {
         
         {/* Header */}
         <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-          <h3 className="font-bold text-gray-800">ชำระค่าส่วนกลาง</h3>
+          <div>
+            <h3 className="font-bold text-gray-800">ชำระค่าส่วนกลาง</h3>
+            {label && <p className="text-xs text-indigo-500 font-bold mt-0.5">{label}</p>}
+          </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
         </div>
 
         <div className="p-6 space-y-6">
-          {/* ข้อมูลบัญชี */}
-          <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
-            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">{bankInfo.bankName}</p>
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-mono font-bold text-indigo-900">{bankInfo.accountNumber}</span>
-              <button 
-                onClick={() => {navigator.clipboard.writeText(bankInfo.accountNumber); alert("คัดลอกแล้ว");}}
-                className="text-indigo-600 p-1 hover:bg-white rounded-md transition"
-              >
-                <Copy size={16}/>
-              </button>
-            </div>
-            <p className="text-xs text-indigo-700 mt-1">ชื่อบัญชี: {bankInfo.accountName}</p>
-          </div>
+          {/* QR พร้อมเพย์ / ข้อมูลบัญชีสำหรับโอน */}
+          <PaymentQR amount={amount} />
 
           {/* ส่วนอัปโหลดสลิป */}
           <div>

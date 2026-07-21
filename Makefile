@@ -1,3 +1,5 @@
+export NGROK_AUTHTOKEN=3Glf2fYdyB6XfKiDij2kS9JFyrd_oRqHtTQESWN8QEv5Lcu8
+
 commit:
 	git commit -M ""
 

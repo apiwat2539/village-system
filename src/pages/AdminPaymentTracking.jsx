@@ -2,7 +2,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import Pagination from '../components/Pagination';
-import { Search, AlertCircle, CheckCircle2, MessageCircle, Home, Inbox, Loader2, FileText } from 'lucide-react';
+import CreateBillModal from '../components/CreateBillModal';
+import PendingPaymentDetailModal from '../components/PendingPaymentDetailModal';
+import { Search, AlertCircle, CheckCircle2, MessageCircle, Home, Inbox, Loader2, FileText, Receipt } from 'lucide-react';
 import Swal from 'sweetalert2';
 import api from '../api/axiosConfig';
 import { ENDPOINTS } from '../api/endpoints';
@@ -13,6 +15,8 @@ const AdminPaymentTracking = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('ทั้งหมด');
+  const [isCreateBillOpen, setIsCreateBillOpen] = useState(false);
+  const [selectedPending, setSelectedPending] = useState(null);
 
   // --- 1. Pagination States ---
   const [currentPage, setCurrentPage] = useState(1);
@@ -53,7 +57,18 @@ const AdminPaymentTracking = () => {
     Swal.fire({ title: 'กำลังอนุมัติ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     try {
       await api.post(ENDPOINTS.PAYMENTS.APPROVE(id));
-      await Swal.fire({ title: 'อนุมัติแล้ว', text: 'ตัดยอดเข้าบิลเรียบร้อยแล้ว', icon: 'success', confirmButtonText: 'ตกลง' });
+      const result = await Swal.fire({
+        title: 'อนุมัติแล้ว',
+        text: 'ตัดยอดเข้าบิลเรียบร้อยแล้ว',
+        icon: 'success',
+        confirmButtonText: 'พิมพ์ใบเสร็จ',
+        showCancelButton: true,
+        cancelButtonText: 'ปิด',
+      });
+      if (result.isConfirmed) {
+        window.open(`/admin-receipt/${id}`, '_blank');
+      }
+      setSelectedPending(null);
       fetchPayments();
     } catch (err) {
       Swal.fire({ title: 'เกิดข้อผิดพลาด', text: err.response?.data?.message || 'ไม่สามารถอนุมัติได้', icon: 'error', confirmButtonText: 'ตกลง' });
@@ -66,6 +81,7 @@ const AdminPaymentTracking = () => {
     try {
       await api.post(ENDPOINTS.PAYMENTS.REJECT(id));
       await Swal.fire({ title: 'ปฏิเสธแล้ว', icon: 'success', confirmButtonText: 'ตกลง' });
+      setSelectedPending(null);
       fetchPayments();
     } catch (err) {
       Swal.fire({ title: 'เกิดข้อผิดพลาด', text: err.response?.data?.message || 'ไม่สามารถปฏิเสธได้', icon: 'error', confirmButtonText: 'ตกลง' });
@@ -167,6 +183,10 @@ const AdminPaymentTracking = () => {
                     className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-700 flex items-center shadow-sm">
                     <FileText size={16} className="mr-1.5" /> ออกบิลประจำเดือน
                   </button>
+                  <button onClick={() => setIsCreateBillOpen(true)}
+                    className="bg-white border border-emerald-200 text-emerald-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-emerald-50 flex items-center shadow-sm">
+                    <Receipt size={16} className="mr-1.5" /> สร้างบิลรายหลัง
+                  </button>
                 </div>
               </div>
 
@@ -203,14 +223,15 @@ const AdminPaymentTracking = () => {
                   {pending.map((p) => (
                     <div key={p.id} className="flex items-center gap-4 p-4">
                       {p.slipUrl ? (
-                        <img src={p.slipUrl} alt="slip" className="w-16 h-16 object-cover rounded-xl border border-slate-200 cursor-zoom-in flex-shrink-0"
-                          onClick={() => window.open(p.slipUrl, '_blank')} />
+                        <img src={p.slipUrl} alt="slip" className="w-16 h-16 object-cover rounded-xl border border-slate-200 cursor-pointer flex-shrink-0"
+                          onClick={() => setSelectedPending(p)} />
                       ) : (
                         <div className="w-16 h-16 rounded-xl bg-slate-100 flex items-center justify-center text-slate-300 flex-shrink-0"><Inbox size={20} /></div>
                       )}
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedPending(p)}>
                         <div className="font-bold text-slate-800">บ้านเลขที่ {p.houseNo}</div>
                         <div className="text-sm text-slate-500">฿{p.amount.toLocaleString()} • {p.createdAt}</div>
+                        <div className="text-xs text-indigo-500 font-bold mt-0.5">ดูรายละเอียด</div>
                       </div>
                       <div className="flex gap-2">
                         <button onClick={() => handleApprove(p.id)}
@@ -364,6 +385,21 @@ const AdminPaymentTracking = () => {
           </div>
         </main>
       </div>
+
+      <CreateBillModal
+        isOpen={isCreateBillOpen}
+        onClose={() => setIsCreateBillOpen(false)}
+        defaultMonth={genMonth}
+        onCreated={fetchPayments}
+      />
+
+      <PendingPaymentDetailModal
+        isOpen={!!selectedPending}
+        onClose={() => setSelectedPending(null)}
+        data={selectedPending}
+        onApprove={handleApprove}
+        onReject={handleReject}
+      />
     </div>
   );
 };

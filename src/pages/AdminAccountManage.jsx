@@ -75,14 +75,14 @@ const AdminAccountManage = () => {
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <h2 className="text-2xl font-bold text-slate-800">บัญชีหมู่บ้าน</h2>
-          {activeTab === 'expense' && (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition flex items-center shadow-lg"
-            >
-              <Plus size={20} className="mr-1" /> เพิ่มรายการเบิกจ่าย
-            </button>
-          )}
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className={`text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center shadow-lg ${
+              activeTab === 'income' ? 'bg-green-600 hover:bg-green-700' : 'bg-indigo-600 hover:bg-indigo-700'
+            }`}
+          >
+            <Plus size={20} className="mr-1" /> {activeTab === 'income' ? 'บันทึกรับเงิน (Manual)' : 'เพิ่มรายการเบิกจ่าย'}
+          </button>
         </div>
 
         {/* Tab Switcher */}
@@ -179,6 +179,7 @@ const AdminAccountManage = () => {
         <AddTransactionModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
+          defaultType={activeTab}
           onSave={() => {
             setIsModalOpen(false);
             fetchTransactions();

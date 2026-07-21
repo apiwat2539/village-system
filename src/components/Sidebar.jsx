@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Megaphone, CreditCard, Wrench, User, Clock, FilePlus, File, ClipboardList, Users, Settings, X } from 'lucide-react';
+import { Megaphone, CreditCard, Wrench, User, Clock, FilePlus, File, ClipboardList, Users, Settings, X, BarChart3 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 // ✅ 1. ต้องรับ { isOpen, onClose } เข้ามาเป็น Props
@@ -18,6 +18,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { icon: <Clock size={20}/>, label: "สถานะค่าส่วนกลาง", path: "/admin-payment-tracking", roles: ['admin'] },
     { icon: <Settings size={20}/>, label: "ตั้งค่าค่าส่วนกลาง", path: "/admin-fee-config", roles: ['admin'] },
     { icon: <File size={20}/>, label: "บัญชีหมู่บ้าน", path: "/admin-account-manage", roles: ['admin'] },
+    { icon: <BarChart3 size={20}/>, label: "ภาพรวมการเงิน", path: "/admin-finance-overview", roles: ['admin'] },
     { icon: <Users size={20}/>, label: "จัดการสมาชิก", path: "/admin-user-manage", roles: ['admin'] },
     { icon: <User size={20}/>, label: "ข้อมูลส่วนตัว", path: "/profile", roles: ['admin', 'user'] },
   ].filter((item) => item.roles.includes(user?.role));

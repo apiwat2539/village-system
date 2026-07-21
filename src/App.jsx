@@ -16,6 +16,9 @@ import AdminAccountManage from './pages/AdminAccountManage';
 import AdminUserManage from './pages/AdminUserManage';
 import AdminPaymentTracking from './pages/AdminPaymentTracking';
 import AdminFeeConfig from './pages/AdminFeeConfig';
+import AdminFinanceOverview from './pages/AdminFinanceOverview';
+import PrintInvoice from './pages/PrintInvoice';
+import PrintReceipt from './pages/PrintReceipt';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import { AuthProvider } from './context/AuthContext';
@@ -48,6 +51,9 @@ function App() {
                 <Route path="/admin-user-manage" element={<AdminUserManage />} />
                 <Route path="/admin-payment-tracking" element={<AdminPaymentTracking />} />
                 <Route path="/admin-fee-config" element={<AdminFeeConfig />} />
+                <Route path="/admin-finance-overview" element={<AdminFinanceOverview />} />
+                <Route path="/admin-invoice/:billId" element={<PrintInvoice />} />
+                <Route path="/admin-receipt/:paymentId" element={<PrintReceipt />} />
               </Route>
             </Route>
 
