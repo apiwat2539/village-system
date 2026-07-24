@@ -1,9 +1,12 @@
 // แยกส่วน Host เพื่อให้เปลี่ยนที่เดียวเวลา Deploy
-// VITE_API_BASE_URL (ถ้าตั้งไว้ใน .env) ชนะเสมอ ไม่งั้น fallback ตาม mode:
-// `npm run dev` -> localhost, `npm run build`/deploy จริง -> backend บน snapdeploy
+// VITE_API_BASE_URL (ถ้าตั้งไว้ใน .env.local) ชนะเสมอ ไม่งั้น fallback ตาม mode:
+// - `npm run build`/deploy จริง -> backend บน snapdeploy (absolute URL)
+// - `npm run dev` -> "" (relative) เพื่อให้ยิงผ่าน Vite dev-server proxy
+//   (vite.config.js server.proxy) เสมอ ไม่ว่าจะเปิดจาก localhost หรือแชร์
+//   ผ่าน ngrok tunnel เดียว — เลี่ยงปัญหา "localhost ของฝั่งไหน" ไปเลย
 const DEFAULT_BASE_URL = import.meta.env.PROD
     ? "https://village-system-backend-b7adb.containers.snapdeploy.app"
-    : "http://localhost:1323";
+    : "";
 
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_BASE_URL;
 
