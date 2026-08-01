@@ -17,8 +17,12 @@ import AdminUserManage from './pages/AdminUserManage';
 import AdminPaymentTracking from './pages/AdminPaymentTracking';
 import AdminFeeConfig from './pages/AdminFeeConfig';
 import AdminFinanceOverview from './pages/AdminFinanceOverview';
+import AdminDisbursement from './pages/AdminDisbursement';
+import AdminPayee from './pages/AdminPayee';
+import AdminTaxFiling from './pages/AdminTaxFiling';
 import PrintInvoice from './pages/PrintInvoice';
 import PrintReceipt from './pages/PrintReceipt';
+import PrintWhtCertificate from './pages/PrintWhtCertificate';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import { AuthProvider } from './context/AuthContext';
@@ -54,6 +58,10 @@ function App() {
                 <Route path="/admin-finance-overview" element={<AdminFinanceOverview />} />
                 <Route path="/admin-invoice/:billId" element={<PrintInvoice />} />
                 <Route path="/admin-receipt/:paymentId" element={<PrintReceipt />} />
+                <Route path="/admin-disbursement" element={<AdminDisbursement />} />
+                <Route path="/admin-payee" element={<AdminPayee />} />
+                <Route path="/admin-tax-filing" element={<AdminTaxFiling />} />
+                <Route path="/admin-wht-certificate/:disbursementId" element={<PrintWhtCertificate />} />
               </Route>
             </Route>
 

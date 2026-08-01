@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import AddTransactionModal from '../components/AddTransactionModal';
+import TransactionDetailModal from '../components/TransactionDetailModal';
 import {
   TrendingUp, TrendingDown, Plus,
-  Calendar, Loader2
+  Calendar, Loader2, Paperclip, Home, ChevronRight
 } from 'lucide-react';
 import Pagination from '../components/Pagination';
 import api from '../api/axiosConfig';
@@ -15,6 +16,8 @@ const AdminAccountManage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('income'); // 'income' หรือ 'expense'
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // id ของรายการที่กดดูรายละเอียด (modal ไปดึงข้อมูลเต็มพร้อมรูปเอง)
+  const [detailId, setDetailId] = useState(null);
 
   // State สำหรับ Filter (backend มีแค่ date ไม่มี time)
   const [filter, setFilter] = useState({ date: '', month: '' });
@@ -140,11 +143,17 @@ const AdminAccountManage = () => {
                   <th className="p-5">วันที่ทำรายการ</th>
                   <th className="p-5">รายการ / หมวดหมู่</th>
                   <th className="p-5 text-right">จำนวนเงิน</th>
+                  <th className="p-5 w-10"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">
                 {currentItems.map((t) => (
-                  <tr key={t.id} className="hover:bg-slate-50/50 transition duration-150">
+                  <tr
+                    key={t.id}
+                    onClick={() => setDetailId(t.id)}
+                    className="hover:bg-slate-50 transition duration-150 cursor-pointer"
+                    title="กดเพื่อดูรายละเอียด"
+                  >
                     <td className="p-5">
                       <div className="flex items-center text-slate-800 font-medium">
                         <Calendar size={14} className="mr-2 text-slate-300"/> {t.date}
@@ -152,16 +161,31 @@ const AdminAccountManage = () => {
                     </td>
                     <td className="p-5 text-slate-700">
                       <div className="font-bold">{t.title}</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{t.category}</div>
+                      <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                        <span>{t.category}</span>
+                        {t.houseNo && (
+                          <span className="inline-flex items-center gap-0.5 text-slate-500">
+                            <Home size={11} /> {t.houseNo}
+                          </span>
+                        )}
+                        {t.hasAttachment && (
+                          <span className="inline-flex items-center gap-0.5 text-indigo-400">
+                            <Paperclip size={11} /> มีไฟล์แนบ
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className={`p-5 text-right font-black ${activeTab === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                       {activeTab === 'income' ? '+' : '-'} {t.amount.toLocaleString()}
+                    </td>
+                    <td className="p-5 text-slate-300">
+                      <ChevronRight size={18} />
                     </td>
                   </tr>
                 ))}
                 {filteredData.length === 0 && (
                   <tr>
-                    <td colSpan="3" className="p-20 text-center text-slate-300 italic">ไม่พบรายการข้อมูลในเงื่อนไขที่กำหนด</td>
+                    <td colSpan="4" className="p-20 text-center text-slate-300 italic">ไม่พบรายการข้อมูลในเงื่อนไขที่กำหนด</td>
                   </tr>
                 )}
               </tbody>
@@ -184,6 +208,12 @@ const AdminAccountManage = () => {
             setIsModalOpen(false);
             fetchTransactions();
           }}
+        />
+
+        <TransactionDetailModal
+          isOpen={!!detailId}
+          transactionId={detailId}
+          onClose={() => setDetailId(null)}
         />
       </main>
     </div>

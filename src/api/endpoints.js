@@ -23,6 +23,9 @@ export const ENDPOINTS = {
         LINE_CALLBACK: "/api/v1/auth/line/callback",
         // POST { registrationTicket, ...profile fields } when status was "register_required".
         LINE_REGISTER: "/api/v1/auth/line/register",
+        // POST { registrationTicket, username, password } สำหรับคนที่มีบัญชีเดิมอยู่แล้ว
+        // ผูก LINE เข้ากับบัญชีนั้นแทนการสมัครใหม่ — ตอบกลับเหมือน LINE_CALLBACK
+        LINE_LINK: "/api/v1/auth/line/link",
     },
     ANNOUNCEMENTS: {
         GET_ALL: "/api/v1/announcements",
@@ -57,6 +60,7 @@ export const ENDPOINTS = {
     },
     TRANSACTIONS: {
         GET_ALL: "/api/v1/transactions",
+        GET_BY_ID: (id) => `/api/v1/transactions/${id}`,
         CREATE: "/api/v1/transactions",
         // range: "month" | "year" | "all"
         OVERVIEW: (range) => `/api/v1/transactions/overview?range=${range}`,
@@ -73,6 +77,49 @@ export const ENDPOINTS = {
         ISSUE_INVOICE: (id) => `/api/v1/bills/${id}/invoice`,
         GET_INVOICE: (id) => `/api/v1/bills/${id}/invoice`,
     },
+    // ทะเบียนผู้รับเงิน (คู่ค้าที่ถูกหักภาษี ณ ที่จ่าย)
+    PAYEES: {
+        GET_ALL: "/api/v1/payees",
+        CREATE: "/api/v1/payees",
+        UPDATE: (id) => `/api/v1/payees/${id}`,
+    },
+    // ระบบเบิกจ่าย + คำนวณภาษีหัก ณ ที่จ่าย
+    DISBURSEMENTS: {
+        // ประเภทเงินได้ + อัตราภาษีมาตรฐาน ดึงจาก backend เสมอ (อย่า hardcode ซ้ำฝั่งนี้)
+        INCOME_TYPES: "/api/v1/disbursements/income-types",
+        PREVIEW_WHT: "/api/v1/disbursements/preview-wht",
+        GET_ALL: (status) => (status ? `/api/v1/disbursements?status=${status}` : "/api/v1/disbursements"),
+        CREATE: "/api/v1/disbursements",
+        GET_BY_ID: (id) => `/api/v1/disbursements/${id}`,
+        APPROVE: (id) => `/api/v1/disbursements/${id}/approve`,
+        REJECT: (id) => `/api/v1/disbursements/${id}/reject`,
+        PAY: (id) => `/api/v1/disbursements/${id}/pay`,
+        WHT_CERTIFICATE: (id) => `/api/v1/disbursements/${id}/wht-certificate`,
+    },
+    // การนำส่งภาษีหัก ณ ที่จ่ายให้กรมสรรพากร (ภ.ง.ด.3 / ภ.ง.ด.53)
+    TAX_FILINGS: {
+        SUMMARY: (period) => `/api/v1/tax-filings/summary?period=${period}`,
+        DETAIL: (form, period) => `/api/v1/tax-filings/${form}?period=${period}`,
+        // format: "txt" (ไฟล์ใบแนบ TIS-620 สำหรับอัปโหลด e-Filing) | "csv" (ไว้ตรวจทาน)
+        EXPORT: (form, period, format) => `/api/v1/tax-filings/${form}/export?period=${period}&format=${format}`,
+        SUBMIT: "/api/v1/tax-filings/submit",
+        HISTORY: "/api/v1/tax-filings/history",
+    },
 };
+
+// หมวดรายจ่าย ใช้ร่วมกับหมวดใน AddTransactionModal เพื่อให้รายงานการเงินรวมยอดได้ตรงกัน
+export const EXPENSE_CATEGORIES = [
+    "ซ่อมแซม/บำรุงรักษา",
+    "เงินเดือนพนักงาน",
+    "ค่าน้ำ-ไฟฟ้าส่วนกลาง",
+    "ค่าใช้จ่ายอื่นๆ",
+];
+
+export const PAYEE_TYPES = [
+    { value: "individual", label: "บุคคลธรรมดา (ยื่น ภ.ง.ด.3)" },
+    { value: "juristic", label: "นิติบุคคล (ยื่น ภ.ง.ด.53)" },
+];
+
+export const PAYMENT_METHODS = ["โอนเงิน", "เงินสด", "เช็ค"];
 
 export const HOUSE_TYPES = ["ทาวน์โฮม", "บ้านแฝด"];
